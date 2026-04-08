@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuestos - Sistema Seguro</title>
+    <link rel="stylesheet" href="estilos.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+    <div class="container" id="app">
+
+        <div id="login-screen" class="login-container">
+            <div class="login-box">
+                <h2 style="text-align: center; margin-bottom: 20px;">Acceso al Sistema</h2>
+                <div class="form-group">
+                    <label>Correo Electrónico:</label>
+                    <input type="email" id="loginEmail" placeholder="tu@correo.com">
+                </div>
+                <div class="form-group espaciado-top">
+                    <label>Contraseña:</label>
+                    <input type="password" id="loginPassword" placeholder="******">
+                </div>
+                <button class="btn-print espaciado-top" onclick="iniciarSesion()">Entrar al Sistema</button>
+                <p id="loginError"
+                    style="color: red; display: none; text-align: center; margin-top: 15px; font-weight: bold;"></p>
+            </div>
+        </div>
+
+        <div id="main-app" style="display: none;">
+
+            <div class="tabs no-print header-tabs">
+                <button class="tab-btn active" onclick="cambiarPestana('presupuesto')">📝 Crear Presupuesto</button>
+                <button class="tab-btn" onclick="cambiarPestana('catalogo')">⚙️Editar Catálogo</button>
+                <button class="btn-logout cursor-pointer" onclick="cerrarSesion()"> Cerrar Sesión</button>
+            </div>
+
+            <div id="tab-presupuesto" class="tab-content active">
+                <h1>Presupuesto de Obra</h1>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Nombre del Cliente:</label>
+                        <input type="text" id="clienteNombre" placeholder="Ej. Juan Pérez">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha:</label>
+                        <input type="date" id="fechaPresupuesto">
+                    </div>
+                </div>
+
+                <div class="seccion-agregar no-print">
+                    <h2>Agregar Trabajo</h2>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Área (Oficio):</label>
+                            <select id="selArea" onchange="cargarConceptos('selArea', 'selConcepto')">
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Concepto:</label>
+                            <select id="selConcepto" onchange="prepararConcepto()">
+                                <option value="">Seleccione Área primero...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-4 espaciado-top">
+                        <div class="form-group">
+                            <label>Unidad:</label>
+                            <select id="txtUnidad">
+                                <option value="m2">m2 (Metro cuadro)</option>
+                                <option value="ml">ml (Metro lineal)</option>
+                                <option value="pza">pza (Pieza)</option>
+                                <option value="lote">lote</option>
+                                <option value="salida">salida</option>
+                                <option value="jornada">jornada/día</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Unit. ($):</label>
+                            <input type="number" id="txtPrecio" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad:</label>
+                            <input type="number" id="txtCantidad" placeholder="0" min="0.1" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn-add" onclick="agregarAlPresupuesto()">Agregar Fila</button>
+                        </div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Concepto</th>
+                            <th>Unidad</th>
+                            <th>Cant.</th>
+                            <th>Precio Unit.</th>
+                            <th>Importe</th>
+                            <th class="no-print">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaPresupuesto"></tbody>
+                </table>
+
+                <div class="opciones-cierre no-print">
+                    <label class="cursor-pointer texto-mediano">
+                        <input type="checkbox" id="checkDesgaste" checked onchange="actualizarTabla()">
+                        Incluir 5% de Herramienta Menor
+                    </label>
+                </div>
+
+                <div class="totales-box">
+                    <p class="total-final">TOTAL: $<span id="lblTotal">0.00</span></p>
+                </div>
+
+                <button class="btn-print no-print" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
+            </div>
+
+            <div id="tab-catalogo" class="tab-content no-print">
+                <h1>Administrar Catálogo</h1>
+
+                <div class="seccion-agregar">
+                    <h2>Nuevo Concepto</h2>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Área:</label>
+                            <select id="catArea"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre del Trabajo (Concepto):</label>
+                            <input type="text" id="catNombre" placeholder="Ej. Firme de concreto">
+                        </div>
+                    </div>
+                    <div class="grid-3 espaciado-top">
+                        <div class="form-group">
+                            <label>Unidad:</label>
+                            <select id="catUnidad">
+                                <option value="m2">m2</option>
+                                <option value="ml">ml</option>
+                                <option value="pza">pza</option>
+                                <option value="lote">lote</option>
+                                <option value="salida">salida</option>
+                                <option value="jornada">jornada/día</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Precio Unitario Sugerido ($):</label>
+                            <input type="number" id="catPrecio" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn-add" onclick="guardarNuevoConcepto()">💾 Guardar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="barra-filtro">
+                    <h2 class="sin-margen">Lista de Precios Actuales</h2>
+                    <div class="form-group contenedor-filtro">
+                        <select id="filtroAreaCatalogo" onchange="cargarTablaCatalogo()" class="select-resaltado">
+                            <option value="">Todas las Áreas...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Área</th>
+                            <th>Concepto</th>
+                            <th>Unidad</th>
+                            <th>Precio</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCatalogo"></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>

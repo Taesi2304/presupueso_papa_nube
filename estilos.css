@@ -1,0 +1,298 @@
+:root {
+    --primary: #1e3799;
+    --secondary: #e58e26;
+    --bg: #f1f2f6;
+    --text: #2f3640;
+    --border: #dcdde1;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+h1,
+h2 {
+    color: var(--primary);
+    margin-top: 0;
+}
+
+/* --- Pestañas --- */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 15px 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    color: #7f8fa6;
+    font-weight: bold;
+    border-bottom: 3px solid transparent;
+    transition: 0.3s;
+}
+
+.tab-btn:hover {
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* --- Formularios y Layout --- */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+}
+
+.grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 15px;
+}
+
+.espaciado-top {
+    margin-top: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+input,
+select {
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 1em;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+/* --- Botones --- */
+button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1em;
+    transition: 0.2s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+.btn-add {
+    background-color: var(--secondary);
+    margin-top: auto;
+    height: 42px;
+}
+
+.btn-print {
+    background-color: #44bd32;
+    width: 100%;
+    margin-top: 20px;
+    font-size: 1.2em;
+    padding: 15px;
+}
+
+.btn-danger {
+    background-color: #e84118;
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+.btn-edit {
+    background-color: #0097e6;
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+.seccion-agregar {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border: 1px solid var(--border);
+}
+
+/* --- Tablas --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th,
+td {
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: var(--primary);
+    color: white;
+}
+
+.fila-herramienta {
+    background-color: #f5f6fa;
+    font-style: italic;
+    font-weight: bold;
+    color: #555;
+}
+
+/* --- Totales --- */
+.totales-box {
+    margin-top: 20px;
+    text-align: right;
+    border-top: 3px solid var(--primary);
+    padding-top: 15px;
+}
+
+.total-final {
+    font-size: 1.8em;
+    color: var(--primary);
+    font-weight: bold;
+    margin: 0;
+}
+
+.opciones-cierre {
+    margin-top: 20px;
+    padding: 15px;
+    background: #eef2f5;
+    border-radius: 5px;
+}
+
+/* --- Utilidades Extras --- */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.texto-mediano {
+    font-size: 1.1em;
+}
+
+.sin-margen {
+    margin: 0;
+}
+
+/* --- SECCIÓN NUEVA: Filtro del Catálogo --- */
+.barra-filtro {
+    display: flex;
+    flex-direction: column;
+    /* Centra los elementos uno sobre otro */
+    align-items: center;
+    gap: 15px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.contenedor-filtro {
+    width: 250px;
+}
+
+.select-resaltado {
+    background-color: #eef2f5;
+    font-weight: bold;
+}
+
+/* --- Impresión --- */
+@media print {
+    body {
+        background: white;
+        padding: 0;
+    }
+
+    .container {
+        box-shadow: none;
+        max-width: 100%;
+        border: none;
+        padding: 0;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    input {
+        border: none;
+        background: transparent;
+        padding: 0;
+    }
+}
+
+/* --- Pantalla de Login --- */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+}
+
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.btn-logout {
+    background-color: #e84118;
+    padding: 8px 15px;
+    margin-left: auto;
+}
+
+.header-tabs {
+    display: flex;
+    width: 100%;
+    align-items: center;
+}
