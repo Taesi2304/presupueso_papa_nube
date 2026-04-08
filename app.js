@@ -337,3 +337,122 @@ async function borrarConcepto(id) {
 }
 
 window.onload = inicializarDatos;
+
+
+// --- LÓGICA DE CLIENTES ---
+
+async function cargarClientes() {
+    const { data: clientes, error } = await clienteSupabase.from('clientes').select('*').order('nombre');
+    if (error) return;
+
+    // Llenar tabla de clientes
+    const tbody = document.getElementById('tablaClientes');
+    tbody.innerHTML = '';
+    clientes.forEach(c => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${c.nombre}</td>
+                <td>${c.telefono || '-'}</td>
+                <td>${c.direccion || '-'}</td>
+                <td><button class="btn-danger" onclick="borrarCliente(${c.id})">🗑️</button></td>
+            </tr>`;
+    });
+
+    // Llenar el select en la pestaña de presupuestos
+    const select = document.getElementById('selClientePresupuesto');
+    select.innerHTML = '<option value="">-- Seleccionar Cliente --</option>';
+    clientes.forEach(c => {
+        select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+    });
+}
+
+async function guardarCliente() {
+    const nombre = document.getElementById('cliNombre').value;
+    const tel = document.getElementById('cliTelefono').value;
+    const dir = document.getElementById('cliDireccion').value;
+
+    if (!nombre) return alert("El nombre es obligatorio");
+
+    await clienteSupabase.from('clientes').insert([{ nombre, telefono: tel, direccion: dir }]);
+    document.getElementById('cliNombre').value = '';
+    document.getElementById('cliTelefono').value = '';
+    document.getElementById('cliDireccion').value = '';
+    cargarClientes();
+}
+
+async function borrarCliente(id) {
+    if (confirm("¿Borrar cliente? Se perderá su historial.")) {
+        await clienteSupabase.from('clientes').delete().eq('id', id);
+        cargarClientes();
+    }
+}
+
+// --- LÓGICA DE HISTORIAL Y GUARDADO ---
+
+async function guardarEImprimir() {
+    const idCliente = document.getElementById('selClientePresupuesto').value;
+    const fecha = document.getElementById('fechaPresupuesto').value;
+    const total = parseFloat(document.getElementById('lblTotal').innerText);
+
+    if (!idCliente || presupuestoActual.length === 0) {
+        return alert("Selecciona un cliente y agrega conceptos antes de guardar.");
+    }
+
+    // 1. Guardar en la tabla 'presupuestos'
+    const { error } = await clienteSupabase.from('presupuestos').insert([
+        { id_cliente: idCliente, fecha: fecha, total: total, subtotal: total }
+    ]);
+
+    if (error) {
+        alert("Error al guardar en el historial: " + error.message);
+    } else {
+        alert("¡Presupuesto guardado en el historial!");
+        cargarHistorial(); // Actualizar la lista
+        window.print();    // Abrir ventana de impresión
+    }
+}
+
+async function cargarHistorial() {
+    // Traemos presupuestos y hacemos un "join" automático con clientes para traer el nombre
+    const { data: historial, error } = await clienteSupabase
+        .from('presupuestos')
+        .select(`id, fecha, total, clientes(nombre)`)
+        .order('fecha', { ascending: false });
+
+    if (error) return;
+
+    const tbody = document.getElementById('tablaHistorial');
+    tbody.innerHTML = '';
+    historial.forEach(p => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.fecha}</td>
+                <td>${p.clientes ? p.clientes.nombre : 'Sin nombre'}</td>
+                <td>$${p.total.toFixed(2)}</td>
+                <td><button class="btn-danger" onclick="borrarPresupuesto(${p.id})">🗑️</button></td>
+            </tr>`;
+    });
+}
+
+async function borrarPresupuesto(id) {
+    if (confirm("¿Eliminar este registro del historial?")) {
+        await clienteSupabase.from('presupuestos').delete().eq('id', id);
+        cargarHistorial();
+    }
+}
+
+// Modifica tu inicializarDatos para que cargue todo al principio
+async function inicializarDatos() {
+    const { data: areas } = await clienteSupabase.from('areas').select('*').order('id');
+    mapaAreas = {};
+    areas.forEach(a => mapaAreas[a.id] = a.nombre);
+
+    llenarMenuDesplegable('selArea', areas, 'Seleccione Área...');
+    llenarMenuDesplegable('catArea', areas, 'Seleccione Área...');
+    llenarMenuDesplegable('filtroAreaCatalogo', areas, 'Todas las Áreas...');
+
+    await cargarClientes(); // <--- Nueva
+    await cargarHistorial(); // <--- Nueva
+    await cargarTablaCatalogo();
+    document.getElementById('fechaPresupuesto').valueAsDate = new Date();
+}

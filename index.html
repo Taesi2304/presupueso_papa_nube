@@ -4,9 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presupuestos - Sistema Seguro</title>
+    <title>Sistema de Presupuestos - Obra</title>
+    <link rel="icon" type="image/x-icon" href="https://cdn-icons-png.flaticon.com/512/913/913428.png">
     <link rel="stylesheet" href="estilos.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 
 <body>
@@ -33,25 +35,29 @@
         <div id="main-app" style="display: none;">
 
             <div class="tabs no-print header-tabs">
-                <button class="tab-btn active" onclick="cambiarPestana('presupuesto')">📝 Crear Presupuesto</button>
-                <button class="tab-btn" onclick="cambiarPestana('catalogo')">⚙️Editar Catálogo</button>
-                <button class="btn-logout cursor-pointer" onclick="cerrarSesion()"> Cerrar Sesión</button>
+                <button class="tab-btn active" onclick="cambiarPestana('presupuesto')">📝 Presupuesto</button>
+                <button class="tab-btn" onclick="cambiarPestana('catalogo')">⚙️ Catálogo</button>
+                <button class="tab-btn" onclick="cambiarPestana('clientes')">👥 Clientes</button>
+                <button class="tab-btn" onclick="cambiarPestana('historial')">📜 Historial</button>
+                <button class="btn-logout cursor-pointer" onclick="cerrarSesion()">Cerrar Sesión</button>
             </div>
 
             <div id="tab-presupuesto" class="tab-content active">
                 <h1>Presupuesto de Obra</h1>
-
                 <div class="grid-2">
                     <div class="form-group">
-                        <label>Nombre del Cliente:</label>
-                        <input type="text" id="clienteNombre" placeholder="Ej. Juan Pérez">
+                        <label>Seleccionar Cliente:</label>
+                        <select id="selClientePresupuesto">
+                            <option value="">Cargando clientes...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Fecha:</label>
                         <input type="date" id="fechaPresupuesto">
                     </div>
                 </div>
-
+                 <br>
+                 <br>
                 <div class="seccion-agregar no-print">
                     <h2>Agregar Trabajo</h2>
                     <div class="grid-2">
@@ -73,9 +79,9 @@
                         <div class="form-group">
                             <label>Unidad:</label>
                             <select id="txtUnidad">
-                                <option value="m2">m2 (Metro cuadro)</option>
-                                <option value="ml">ml (Metro lineal)</option>
-                                <option value="pza">pza (Pieza)</option>
+                                <option value="m2">m2</option>
+                                <option value="ml">ml</option>
+                                <option value="pza">pza</option>
                                 <option value="lote">lote</option>
                                 <option value="salida">salida</option>
                                 <option value="jornada">jornada/día</option>
@@ -95,7 +101,7 @@
                     </div>
                 </div>
                 
-            <div class="table-container">
+                <div class="table-container"></div>
                 <table>
                     <thead>
                         <tr>
@@ -108,8 +114,9 @@
                         </tr>
                     </thead>
                     <tbody id="tablaPresupuesto"></tbody>
-                </table>
-            </div>
+                
+                </table></div>
+
                 <div class="opciones-cierre no-print">
                     <label class="cursor-pointer texto-mediano">
                         <input type="checkbox" id="checkDesgaste" checked onchange="actualizarTabla()">
@@ -121,12 +128,11 @@
                     <p class="total-final">TOTAL: $<span id="lblTotal">0.00</span></p>
                 </div>
 
-                <button class="btn-print no-print" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
+                <button class="btn-print no-print" onclick="guardarEImprimir()">💾 Guardar y Generar PDF</button>
             </div>
-        
+
             <div id="tab-catalogo" class="tab-content no-print">
                 <h1>Administrar Catálogo</h1>
-
                 <div class="seccion-agregar">
                     <h2>Nuevo Concepto</h2>
                     <div class="grid-2">
@@ -135,7 +141,7 @@
                             <select id="catArea"></select>
                         </div>
                         <div class="form-group">
-                            <label>Nombre del Trabajo (Concepto):</label>
+                            <label>Nombre del Trabajo:</label>
                             <input type="text" id="catNombre" placeholder="Ej. Firme de concreto">
                         </div>
                     </div>
@@ -160,7 +166,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="barra-filtro">
                     <h2 class="sin-margen">Lista de Precios Actuales</h2>
                     <div class="form-group contenedor-filtro">
@@ -169,7 +174,7 @@
                         </select>
                     </div>
                 </div>
-             <div class="table-container">
+            <div class="table-container">
                 <table>
                     <thead>
                         <tr>
@@ -183,6 +188,48 @@
                     <tbody id="tablaCatalogo"></tbody>
                 </table>
                 </div>
+            </div>
+
+            <div id="tab-clientes" class="tab-content no-print">
+                <h1>Directorio de Clientes</h1>
+                <div class="seccion-agregar">
+                    <h2>Nuevo Cliente</h2>
+                    <div class="grid-3">
+                        <input type="text" id="cliNombre" placeholder="Nombre Completo">
+                        <input type="text" id="cliTelefono" placeholder="Teléfono">
+                        <input type="text" id="cliDireccion" placeholder="Dirección/Obra">
+                        <button class="btn-add" onclick="guardarCliente()">➕ Guardar Cliente</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                            <th>Dirección</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaClientes"></tbody>
+                </table></div>
+            </div>
+           
+            <div id="tab-historial" class="tab-content no-print">
+                <h1>Historial de Registro de Presupuestos Realizados
+                </h1>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaHistorial"></tbody>
+                </table></div>
             </div>
 
         </div>
