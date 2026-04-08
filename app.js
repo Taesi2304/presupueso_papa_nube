@@ -1,37 +1,32 @@
-
+// 1. CONEXIÓN A SUPABASE
 const SUPABASE_URL = 'https://wjnsfxpmndbkyytlynjk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqbnNmeHBtbmRia3l5dGx5bmprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2MjQ1NTksImV4cCI6MjA5MTIwMDU1OX0.lUreFgivwsa3hG3rHNObschcuXa2nQPR3fMhAOzkqqA';
-
-// Inicializamos el cliente (Le cambiamos el nombre a clienteSupabase para evitar el error)
 const clienteSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Variables temporales
 let presupuestoActual = [];
 let conceptoTemporal = null;
 let mapaAreas = {};
 
-
-// --- NUEVA LÓGICA DE SEGURIDAD (LOGIN) ---
+// ==========================================
+// SEGURIDAD Y LOGIN
+// ==========================================
 async function verificarSesion() {
     const { data: { session } } = await clienteSupabase.auth.getSession();
-
     if (session) {
-        // Si hay sesión, ocultar login y mostrar app
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
-        inicializarDatos(); // Cargar los datos de la base
+        inicializarDatos();
     } else {
-        // Si no hay sesión, mostrar login y ocultar app
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('main-app').style.display = 'none';
     }
-
 }
 
 async function iniciarSesion() {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorMsg = document.getElementById('loginError');
-
     errorMsg.style.display = 'none';
 
     if (!email || !password) {
@@ -41,12 +36,10 @@ async function iniciarSesion() {
     }
 
     const { data, error } = await clienteSupabase.auth.signInWithPassword({ email, password });
-
     if (error) {
         errorMsg.innerText = "Credenciales incorrectas.";
         errorMsg.style.display = 'block';
     } else {
-        // Login exitoso, borrar campos y verificar
         document.getElementById('loginEmail').value = '';
         document.getElementById('loginPassword').value = '';
         verificarSesion();
@@ -58,38 +51,33 @@ async function cerrarSesion() {
     verificarSesion();
 }
 
-// 2. INICIO DE LA APLICACIÓN (Súper Optimizado)
+// ==========================================
+// INICIO Y CARGA DE DATOS MAESTROS
+// ==========================================
 async function inicializarDatos() {
-    // 1. Hacemos UN SOLO VIAJE a la nube para traer las áreas
     const { data: areas, error } = await clienteSupabase.from('areas').select('*').order('id', { ascending: true });
-
     if (error) { alert("Error de conexión: " + error.message); return; }
 
-    // 2. Guardamos en la memoria rápida
     mapaAreas = {};
     areas.forEach(a => mapaAreas[a.id] = a.nombre);
 
-    // 3. Llenamos los 3 menús al mismo tiempo, sin usar internet
     llenarMenuDesplegable('selArea', areas, 'Seleccione Área...');
     llenarMenuDesplegable('catArea', areas, 'Seleccione Área...');
     llenarMenuDesplegable('filtroAreaCatalogo', areas, 'Todas las Áreas...');
 
     document.getElementById('fechaPresupuesto').valueAsDate = new Date();
 
-    // 4. Traemos los conceptos para la tabla
+    await cargarClientes();
+    await cargarHistorial();
     await cargarTablaCatalogo();
 }
 
-// Función auxiliar que recicla los datos para que cargue instantáneo
 function llenarMenuDesplegable(selectId, areas, textoDefault) {
     const select = document.getElementById(selectId);
     select.innerHTML = `<option value="">${textoDefault}</option>`;
     areas.forEach(a => select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
 }
 
-
-
-// --- FUNCIONES DE PESTAÑAS ---
 function cambiarPestana(pestana) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -97,28 +85,113 @@ function cambiarPestana(pestana) {
     event.currentTarget.classList.add('active');
 }
 
-// --- LÓGICA DE ÁREAS Y CONCEPTOS ---
-async function cargarAreas(selectId) {
-    const { data: areas, error } = await clienteSupabase.from('areas').select('*').order('id', { ascending: true });
+// ==========================================
+// LÓGICA DE CLIENTES
+// ==========================================
+async function cargarClientes() {
+    const { data: clientes, error } = await clienteSupabase.from('clientes').select('*').order('nombre');
+    if (error) return;
 
-    if (error) { alert("Error al cargar áreas: " + error.message); return; }
+    const tbody = document.getElementById('tablaClientes');
+    tbody.innerHTML = '';
+    const select = document.getElementById('selClientePresupuesto');
+    select.innerHTML = '<option value="">-- Seleccionar Cliente --</option>';
 
-    const select = document.getElementById(selectId);
-    select.innerHTML = '<option value="">Seleccione Área...</option>';
-
-    areas.forEach(a => {
-        select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`;
-        mapaAreas[a.id] = a.nombre;
+    clientes.forEach(c => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${c.nombre}</td>
+                <td>${c.telefono || '-'}</td>
+                <td>${c.direccion || '-'}</td>
+                <td><button class="btn-danger" onclick="borrarCliente(${c.id})">🗑️</button></td>
+            </tr>`;
+        select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
     });
 }
 
-async function cargarFiltroCatalogo() {
-    const { data: areas } = await clienteSupabase.from('areas').select('*').order('id', { ascending: true });
-    const select = document.getElementById('filtroAreaCatalogo');
-    select.innerHTML = '<option value="">Mostrar Todas las Áreas...</option>';
-    areas.forEach(a => select.innerHTML += `<option value="${a.id}">${a.nombre}</option>`);
+async function guardarCliente() {
+    const nombre = document.getElementById('cliNombre').value;
+    const tel = document.getElementById('cliTelefono').value;
+    const dir = document.getElementById('cliDireccion').value;
+
+    if (!nombre) return alert("El nombre es obligatorio");
+
+    const { error } = await clienteSupabase.from('clientes').insert([{ nombre, telefono: tel, direccion: dir }]);
+
+    if (error) {
+        alert("Error al guardar cliente: " + error.message);
+        return;
+    }
+
+    document.getElementById('cliNombre').value = '';
+    document.getElementById('cliTelefono').value = '';
+    document.getElementById('cliDireccion').value = '';
+    cargarClientes();
 }
 
+async function borrarCliente(id) {
+    if (confirm("¿Borrar cliente? Se perderá su historial.")) {
+        await clienteSupabase.from('clientes').delete().eq('id', id);
+        cargarClientes();
+    }
+}
+
+// ==========================================
+// LÓGICA DE HISTORIAL Y GUARDADO
+// ==========================================
+async function guardarEImprimir() {
+    const idCliente = document.getElementById('selClientePresupuesto').value;
+    const fecha = document.getElementById('fechaPresupuesto').value;
+    const total = parseFloat(document.getElementById('lblTotal').innerText);
+
+    if (!idCliente || presupuestoActual.length === 0) {
+        return alert("Selecciona un cliente y agrega conceptos antes de guardar.");
+    }
+
+    const { error } = await clienteSupabase.from('presupuestos').insert([
+        { id_cliente: idCliente, fecha: fecha, total: total, subtotal: total }
+    ]);
+
+    if (error) {
+        alert("Error al guardar en el historial: " + error.message);
+    } else {
+        alert("¡Presupuesto guardado en el historial!");
+        cargarHistorial();
+        window.print();
+    }
+}
+
+async function cargarHistorial() {
+    const { data: historial, error } = await clienteSupabase
+        .from('presupuestos')
+        .select(`id, fecha, total, clientes(nombre)`)
+        .order('fecha', { ascending: false });
+
+    if (error) return;
+
+    const tbody = document.getElementById('tablaHistorial');
+    tbody.innerHTML = '';
+    historial.forEach(p => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${p.fecha}</td>
+                <td>${p.clientes ? p.clientes.nombre : 'Sin nombre'}</td>
+                <td>$${p.total.toFixed(2)}</td>
+                <td><button class="btn-danger" onclick="borrarPresupuesto(${p.id})">🗑️</button></td>
+            </tr>`;
+    });
+}
+
+async function borrarPresupuesto(id) {
+    if (confirm("¿Eliminar este registro del historial?")) {
+        await clienteSupabase.from('presupuestos').delete().eq('id', id);
+        cargarHistorial();
+    }
+}
+
+// ==========================================
+// LÓGICA DE PRESUPUESTO
+// ==========================================
 async function cargarConceptos(origenId, destinoId) {
     const idArea = parseInt(document.getElementById(origenId).value);
     const select = document.getElementById(destinoId);
@@ -127,13 +200,8 @@ async function cargarConceptos(origenId, destinoId) {
 
     if (!idArea) return;
 
-    const { data: conceptos, error } = await clienteSupabase
-        .from('conceptos')
-        .select('*')
-        .eq('id_area', idArea)
-        .order('orden', { ascending: true });
-
-    if (error) { console.error(error); return; }
+    const { data: conceptos, error } = await clienteSupabase.from('conceptos').select('*').eq('id_area', idArea).order('orden', { ascending: true });
+    if (error) return;
 
     conceptos.forEach(c => select.innerHTML += `<option value="${c.id}">${c.concepto}</option>`);
 }
@@ -143,7 +211,6 @@ async function prepararConcepto() {
     if (!idCon) { limpiarInputsPresupuesto(); return; }
 
     const { data, error } = await clienteSupabase.from('conceptos').select('*').eq('id', idCon).single();
-
     if (error || !data) return;
 
     conceptoTemporal = data;
@@ -159,7 +226,6 @@ function limpiarInputsPresupuesto() {
     document.getElementById('txtCantidad').value = '';
 }
 
-// --- LÓGICA DEL PRESUPUESTO ---
 function agregarAlPresupuesto() {
     const conceptoSelect = document.getElementById('selConcepto');
     const textoConcepto = conceptoSelect.options[conceptoSelect.selectedIndex].text;
@@ -229,7 +295,9 @@ function actualizarTabla() {
     document.getElementById('lblTotal').innerText = granTotal.toFixed(2);
 }
 
-// --- LÓGICA DE ADMINISTRACIÓN DE CATÁLOGO ---
+// ==========================================
+// LÓGICA DE CATÁLOGO
+// ==========================================
 async function guardarNuevoConcepto() {
     const idArea = parseInt(document.getElementById('catArea').value);
     const nombre = document.getElementById('catNombre').value;
@@ -292,12 +360,10 @@ async function cargarTablaCatalogo() {
     let query = clienteSupabase.from('conceptos').select('*').order('id_area', { ascending: true }).order('orden', { ascending: true });
 
     const idFiltro = parseInt(document.getElementById('filtroAreaCatalogo').value);
-    if (idFiltro) {
-        query = query.eq('id_area', idFiltro);
-    }
+    if (idFiltro) { query = query.eq('id_area', idFiltro); }
 
     const { data: conceptos, error } = await query;
-    if (error) { console.error(error); return; }
+    if (error) return;
 
     const tbody = document.getElementById('tablaCatalogo');
     tbody.innerHTML = '';
@@ -336,124 +402,5 @@ async function borrarConcepto(id) {
     }
 }
 
-window.onload = inicializarDatos;
-
-
-// --- LÓGICA DE CLIENTES ---
-
-async function cargarClientes() {
-    const { data: clientes, error } = await clienteSupabase.from('clientes').select('*').order('nombre');
-    if (error) return;
-
-    // Llenar tabla de clientes
-    const tbody = document.getElementById('tablaClientes');
-    tbody.innerHTML = '';
-    clientes.forEach(c => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${c.nombre}</td>
-                <td>${c.telefono || '-'}</td>
-                <td>${c.direccion || '-'}</td>
-                <td><button class="btn-danger" onclick="borrarCliente(${c.id})">🗑️</button></td>
-            </tr>`;
-    });
-
-    // Llenar el select en la pestaña de presupuestos
-    const select = document.getElementById('selClientePresupuesto');
-    select.innerHTML = '<option value="">-- Seleccionar Cliente --</option>';
-    clientes.forEach(c => {
-        select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-    });
-}
-
-async function guardarCliente() {
-    const nombre = document.getElementById('cliNombre').value;
-    const tel = document.getElementById('cliTelefono').value;
-    const dir = document.getElementById('cliDireccion').value;
-
-    if (!nombre) return alert("El nombre es obligatorio");
-
-    await clienteSupabase.from('clientes').insert([{ nombre, telefono: tel, direccion: dir }]);
-    document.getElementById('cliNombre').value = '';
-    document.getElementById('cliTelefono').value = '';
-    document.getElementById('cliDireccion').value = '';
-    cargarClientes();
-}
-
-async function borrarCliente(id) {
-    if (confirm("¿Borrar cliente? Se perderá su historial.")) {
-        await clienteSupabase.from('clientes').delete().eq('id', id);
-        cargarClientes();
-    }
-}
-
-// --- LÓGICA DE HISTORIAL Y GUARDADO ---
-
-async function guardarEImprimir() {
-    const idCliente = document.getElementById('selClientePresupuesto').value;
-    const fecha = document.getElementById('fechaPresupuesto').value;
-    const total = parseFloat(document.getElementById('lblTotal').innerText);
-
-    if (!idCliente || presupuestoActual.length === 0) {
-        return alert("Selecciona un cliente y agrega conceptos antes de guardar.");
-    }
-
-    // 1. Guardar en la tabla 'presupuestos'
-    const { error } = await clienteSupabase.from('presupuestos').insert([
-        { id_cliente: idCliente, fecha: fecha, total: total, subtotal: total }
-    ]);
-
-    if (error) {
-        alert("Error al guardar en el historial: " + error.message);
-    } else {
-        alert("¡Presupuesto guardado en el historial!");
-        cargarHistorial(); // Actualizar la lista
-        window.print();    // Abrir ventana de impresión
-    }
-}
-
-async function cargarHistorial() {
-    // Traemos presupuestos y hacemos un "join" automático con clientes para traer el nombre
-    const { data: historial, error } = await clienteSupabase
-        .from('presupuestos')
-        .select(`id, fecha, total, clientes(nombre)`)
-        .order('fecha', { ascending: false });
-
-    if (error) return;
-
-    const tbody = document.getElementById('tablaHistorial');
-    tbody.innerHTML = '';
-    historial.forEach(p => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${p.fecha}</td>
-                <td>${p.clientes ? p.clientes.nombre : 'Sin nombre'}</td>
-                <td>$${p.total.toFixed(2)}</td>
-                <td><button class="btn-danger" onclick="borrarPresupuesto(${p.id})">🗑️</button></td>
-            </tr>`;
-    });
-}
-
-async function borrarPresupuesto(id) {
-    if (confirm("¿Eliminar este registro del historial?")) {
-        await clienteSupabase.from('presupuestos').delete().eq('id', id);
-        cargarHistorial();
-    }
-}
-
-// Modifica tu inicializarDatos para que cargue todo al principio
-async function inicializarDatos() {
-    const { data: areas } = await clienteSupabase.from('areas').select('*').order('id');
-    mapaAreas = {};
-    areas.forEach(a => mapaAreas[a.id] = a.nombre);
-
-    llenarMenuDesplegable('selArea', areas, 'Seleccione Área...');
-    llenarMenuDesplegable('catArea', areas, 'Seleccione Área...');
-    llenarMenuDesplegable('filtroAreaCatalogo', areas, 'Todas las Áreas...');
-
-    await cargarClientes(); // <--- Nueva
-    await cargarHistorial(); // <--- Nueva
-    await cargarTablaCatalogo();
-    document.getElementById('fechaPresupuesto').valueAsDate = new Date();
-}
-
+// ¡Esta es la única línea que debe ejecutar el navegador al abrir la página!
+window.onload = verificarSesion;
