@@ -296,3 +296,60 @@ th {
     width: 100%;
     align-items: center;
 }
+
+/* --- DISEÑO RESPONSIVO --- */
+
+/* Esta regla se aplica a pantallas menores a 768px (celulares y tablets) */
+@media (max-width: 768px) {
+
+    .container {
+        width: 95%;
+        /* Que ocupe casi toda la pantalla del cel */
+        padding: 10px;
+        margin: 5px auto;
+    }
+
+    /* Hacemos que todos los grids se vuelvan de 1 sola columna */
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        display: grid;
+        grid-template-columns: 1fr !important;
+        /* Fuerza a una columna */
+        gap: 10px;
+    }
+
+    /* Botones más grandes para que sea fácil picar con el dedo */
+    button,
+    .btn-add,
+    .btn-print {
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+    }
+
+    /* Ajuste para las pestañas */
+    .tabs {
+        flex-direction: column;
+        /* Pone los botones uno arriba del otro */
+    }
+
+    .tab-btn {
+        width: 100%;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    /* Esto crea una barrita de desplazamiento lateral SOLO en la tabla */
+    margin-top: 15px;
+    border: 1px solid #ddd;
+}
+
+table {
+    min-width: 600px;
+    /* Evita que la tabla se haga "flaquita" e ilegible */
+}
