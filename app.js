@@ -24,6 +24,7 @@ async function verificarSesion() {
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('main-app').style.display = 'none';
     }
+
 }
 
 async function iniciarSesion() {
