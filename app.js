@@ -456,3 +456,4 @@ async function inicializarDatos() {
     await cargarTablaCatalogo();
     document.getElementById('fechaPresupuesto').valueAsDate = new Date();
 }
+
